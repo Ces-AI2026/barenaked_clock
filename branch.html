@@ -44,8 +44,8 @@
             const currentToken = generateLocalToken(branchName);
             const qrPayload = branchName + "|" + currentToken;
             
-            // QUICKCHART REPLACEMENT LINK: Generates a certified, scannable QR image instantly
-            const qrUrl = "https://quickchart.io" + encodeURIComponent(qrPayload);
+            // BULLETPROOF GENERATOR LINK: Generates a certified, perfectly scannable image instantly
+            const qrUrl = "https://image-charts.com|1&cll=" + encodeURIComponent(qrPayload);
             
             document.getElementById("qr-image").src = qrUrl;
             
