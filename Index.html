@@ -1,0 +1,149 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barenaked Salons Portal</title>
+    <script src="https://unpkg.com"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #fafafa; margin: 0; padding: 20px; text-align: center; color: #333; }
+        .container { max-width: 400px; margin: 0 auto; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .logo { font-size: 22px; font-weight: bold; letter-spacing: 2px; color: #222; margin-bottom: 5px; text-transform: uppercase; }
+        .subtitle { font-size: 13px; color: #888; margin-bottom: 25px; }
+        .input-group { margin-bottom: 20px; text-align: left; }
+        label { font-size: 12px; font-weight: bold; text-transform: uppercase; color: #666; display: block; margin-bottom: 6px; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        #reader { width: 100%; border-radius: 12px; overflow: hidden; border: none !important; background: #000; margin-bottom: 20px; display: none; }
+        .btn { width: 100%; padding: 14px; background: #222; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .spinner-overlay { display: none; margin: 15px 0; }
+        .spinner { width: 30px; height: 30px; border: 3px solid #f3f3f3; border-top: 3px solid #222; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .status-box { margin-top: 15px; padding: 12px; border-radius: 8px; font-size: 14px; display: none; font-weight: bold; }
+        .success { background: #e6f4ea; color: #137333; }
+        .error { background: #fce8e6; color: #c5221f; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo">Barenaked</div>
+    <div class="subtitle">Time Clock Scan Portal</div>
+    
+    <div class="input-group">
+        <label for="empId">Enter Your Employee ID</label>
+        <input type="text" id="empId" placeholder="e.g., EMP00001" autocomplete="off">
+    </div>
+
+    <div id="reader"></div>
+
+    <button id="actionBtn" class="btn" onclick="startScanner()">Open Camera & Scan</button>
+    
+    <div id="spinnerView" class="spinner-overlay">
+        <div class="spinner"></div>
+        <p style="font-size:12px; color:#666; margin-top:8px;">Verifying credentials & position, please wait...</p>
+    </div>
+
+    <div id="statusBox" class="status-box"></div>
+</div>
+
+<script>
+    // PASTE YOUR ACTUAL GOOGLE EXEC URL BETWEEN THE QUOTES BELOW
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwsxr90ggczsVc957KF4KBpEal9OEz-lBj0NjVCB7mwcBifbYlNIoj9aP97MoYe9fvScw/exec"; 
+    
+    let html5QrcodeScanner;
+
+    function showStatus(message, isSuccess) {
+        const box = document.getElementById("statusBox");
+        box.innerText = message;
+        box.className = "status-box " + (isSuccess ? "success" : "error");
+        box.style.display = "block";
+    }
+
+    function startScanner() {
+        const empIdInput = document.getElementById("empId").value.trim().toUpperCase();
+        if (!empIdInput) {
+            alert("Please input your assigned Employee ID first.");
+            return;
+        }
+
+        document.getElementById("statusBox").style.display = "none";
+        document.getElementById("reader").style.display = "block";
+        document.getElementById("actionBtn").style.display = "none";
+
+        html5QrcodeScanner = new Html5Qrcode("reader");
+        html5QrcodeScanner.start(
+            { facingMode: "environment" }, 
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (qrCodeMessage) => {
+                html5QrcodeScanner.stop().then(() => {
+                    document.getElementById("reader").style.display = "none";
+                    processAttendanceLog(empIdInput, qrCodeMessage);
+                });
+            },
+            (errorMessage) => { }
+        ).catch(err => {
+            alert("Camera failed. Please grant permission.");
+            resetUI();
+        });
+    }
+
+    function processAttendanceLog(empId, qrPayload) {
+        document.getElementById("spinnerView").style.display = "block";
+
+        // Splits the QR code text at the "|" symbol
+        const parts = qrPayload.split("|");
+        if (parts.length !== 2) {
+            showStatus("Invalid QR code. Scan the official branch screen phone.", false);
+            resetUI();
+            return;
+        }
+
+        // FIX: This ensures the system reads both the Branch Name and the Security Token cleanly
+        const branchName = parts[0]; // [0] extracts the salon name from the scan
+        const tokenCode = parts[1];  // [1] extracts the security code from the scan
+
+        if (!navigator.geolocation) {
+            showStatus("GPS unsupported by browser.", false);
+            resetUI();
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const payload = {
+                    empId: empId,
+                    branch: branchName,
+                    token: tokenCode,
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                })
+                .then(() => {
+                    showStatus(`Attendance record sent to processing queue!`, true);
+                    resetUI();
+                })
+                .catch(err => {
+                    showStatus("Network problem. Retrying connection...", false);
+                    resetUI();
+                });
+            },
+            (error) => {
+                showStatus("GPS location required to verify branch attendance.", false);
+                resetUI();
+            },
+            { enableHighAccuracy: true, timeout: 8000 }
+        );
+    }
+
+    function resetUI() {
+        document.getElementById("spinnerView").style.display = "none";
+        document.getElementById("actionBtn").style.display = "block";
+    }
+</script>
+</body>
+</html>

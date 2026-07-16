@@ -1,0 +1,68 @@
+<html>
+<head>
+    <title>Barenaked Salon Station</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #fafafa; padding: 20px; }
+        .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: inline-block; max-width: 320px; }
+        #qr-container { margin: 20px 0; min-height: 250px; display: flex; align-items: center; justify-content: center; background: #eee; border-radius: 8px;}
+        h2 { color: #222; margin-bottom: 5px; text-transform: uppercase; font-size: 20px; letter-spacing: 1px; }
+        #timer { font-size: 13px; color: #999; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2 id="branch-title">Loading...</h2>
+        <p style="font-size:14px; color:#555;">Scan using your personal phone to log your shift.</p>
+        <div id="qr-container">
+            <img id="qr-image" src="" alt="QR Code" style="width:250px; height:250px; display:none; border-radius: 4px;">
+            <p id="loading-text">Generating secure token...</p>
+        </div>
+        <div id="timer">Refreshing in: --s</div>
+    </div>
+
+    <script>
+        // PASTE YOUR ACTUAL GOOGLE EXEC URL BETWEEN THE QUOTES BELOW
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwsxr90ggczsVc957KF4KBpEal9OEz-lBj0NjVCB7mwcBifbYlNIoj9aP97MoYe9fvScw/exec"; 
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const branchName = urlParams.get('name') || "Fairview"; // Default fallback
+        document.getElementById("branch-title").innerText = branchName + " Branch";
+
+        function refreshQR() {
+            fetch(`${SCRIPT_URL}?branch=${encodeURIComponent(branchName)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const qrPayload = `${data.branch}|${data.token}`;
+                    const qrUrl = `https://qrserver.com{encodeURIComponent(qrPayload)}`;
+                    
+                    document.getElementById("qr-image").src = qrUrl;
+                    document.getElementById("qr-image").style.display = "inline-block";
+                    document.getElementById("loading-text").style.display = "none";
+                    
+                    startCountdown(data.expires_in);
+                })
+                .catch(err => {
+                    document.getElementById("loading-text").innerText = "Waiting for network connection...";
+                });
+        }
+
+        function startCountdown(seconds) {
+            let timeLeft = seconds;
+            const timerDiv = document.getElementById("timer");
+            clearInterval(window.countdownInterval);
+            
+            window.countdownInterval = setInterval(() => {
+                timeLeft--;
+                timerDiv.innerText = `Refreshing in: ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(window.countdownInterval);
+                    refreshQR();
+                }
+            }, 1000);
+        }
+
+        refreshQR();
+    </script>
+</body>
+</html>
