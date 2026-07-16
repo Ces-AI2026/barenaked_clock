@@ -33,8 +33,9 @@
             fetch(`${SCRIPT_URL}?branch=${encodeURIComponent(branchName)}`)
                 .then(response => response.json())
                 .then(data => {
-                    const qrPayload = `${data.branch}|${data.token}`;
-                    const qrUrl = `https://qrserver.com{encodeURIComponent(qrPayload)}`;
+                    const qrPayload = data.branch + "|" + data.token;
+                    const qrUrl = "https://qrserver.com" + encodeURIComponent(qrPayload);
+
                     
                     document.getElementById("qr-image").src = qrUrl;
                     document.getElementById("qr-image").style.display = "inline-block";
