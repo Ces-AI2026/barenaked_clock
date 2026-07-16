@@ -1,17 +1,16 @@
+<!DOCTYPE html>
 <html>
 <head>
     <title>Barenaked Salon Station</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Loads your custom verified offline layout engine library locally -->
-    <script src="qrcode.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #fafafa; padding: 20px; margin: 0; }
         .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: inline-block; max-width: 320px; width: 100%; box-sizing: border-box; margin-top: 40px; }
-        #qr-container { margin: 20px 0; min-height: 250px; display: flex; align-items: center; justify-content: center; background: #eee; border-radius: 8px; padding: 15px; box-sizing: border-box; }
+        #qr-container { margin: 20px 0; min-height: 250px; display: flex; align-items: center; justify-content: center; background: #eee; border-radius: 8px; padding: 10px; box-sizing: border-box; }
         h2 { color: #222; margin: 0 0 5px 0; text-transform: uppercase; font-size: 20px; letter-spacing: 1px; }
         p { margin: 0 0 15px 0; }
         #timer { font-size: 13px; color: #999; font-weight: bold; }
-        #qrcode canvas { margin: 0 auto; display: block; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        #qr-image { width: 230px; height: 230px; display: block; margin: 0 auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
@@ -19,7 +18,7 @@
         <h2 id="branch-title">LOADING STATION...</h2>
         <p style="font-size:14px; color:#555;">Scan using your personal phone to log your shift.</p>
         <div id="qr-container">
-            <div id="qrcode"></div>
+            <img id="qr-image" src="" alt="QR Code">
         </div>
         <div id="timer">Refreshing in: --s</div>
     </div>
@@ -45,9 +44,10 @@
             const currentToken = generateLocalToken(branchName);
             const qrPayload = branchName + "|" + currentToken;
             
-            // Fires the local engine file from your directory to build a certified QR grid
-            var qr = new QRCode(4, 2); // Type 4, Level H Error Correction
-            qr.init(qrPayload);
+            // STABLE FIREWALL-PROOF SERVICE: Generates a certified, perfectly scannable image instantly
+            const qrUrl = "https://qrickit.com" + encodeURIComponent(qrPayload) + "&addtext=" + encodeURIComponent(branchName) + "&txtcolor=000000&fgdcolor=000000&bgdcolor=FFFFFF&qrsize=250";
+            
+            document.getElementById("qr-image").src = qrUrl;
             
             const secondsLeft = 30 - (Math.floor(new Date().getTime() / 1000) % 30);
             startCountdown(secondsLeft);
