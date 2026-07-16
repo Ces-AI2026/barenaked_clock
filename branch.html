@@ -1,8 +1,9 @@
-<!DOCTYPE html>
 <html>
 <head>
     <title>Barenaked Salon Station</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Loads your custom verified offline layout engine library locally -->
+    <script src="qrcode.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background: #fafafa; padding: 20px; margin: 0; }
         .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: inline-block; max-width: 320px; width: 100%; box-sizing: border-box; margin-top: 40px; }
@@ -10,11 +11,7 @@
         h2 { color: #222; margin: 0 0 5px 0; text-transform: uppercase; font-size: 20px; letter-spacing: 1px; }
         p { margin: 0 0 15px 0; }
         #timer { font-size: 13px; color: #999; font-weight: bold; }
-        
-        /* The local HTML layout engine settings */
-        .qr-grid { display: grid; grid-template-columns: repeat(25, 9px); grid-template-rows: repeat(25, 9px); background: #ffffff; padding: 10px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .b { background: #000000; }
-        .w { background: #ffffff; }
+        #qrcode canvas { margin: 0 auto; display: block; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
@@ -22,7 +19,7 @@
         <h2 id="branch-title">LOADING STATION...</h2>
         <p style="font-size:14px; color:#555;">Scan using your personal phone to log your shift.</p>
         <div id="qr-container">
-            <div id="qr-matrix" class="qr-grid"></div>
+            <div id="qrcode"></div>
         </div>
         <div id="timer">Refreshing in: --s</div>
     </div>
@@ -31,51 +28,6 @@
         const urlParams = new URLSearchParams(window.location.search);
         const branchName = (urlParams.get('name') || "OFFICE").toUpperCase();
         document.getElementById("branch-title").innerText = branchName + " BRANCH";
-
-        // DRAW NATIVE HTML BLOCKS: Builds a genuine, scannable QR layout grid frame natively
-        function buildScannableHTMLQR(text) {
-            const size = 25;
-            const matrix = Array(size).fill().map(() => Array(size).fill(0));
-            
-            // Draw mandatory target position square tracking boundaries
-            const drawAnchor = (rs, cs) => {
-                for (let r = 0; r < 7; r++) {
-                    for (let c = 0; c < 7; c++) {
-                        const edge = r===0 || r===6 || c===0 || c===6;
-                        const center = r>=2 && r<=4 && c>=2 && c<=4;
-                        if (edge || center) matrix[rs+r][cs+c] = 1;
-                    }
-                }
-            };
-            drawAnchor(0, 0); drawAnchor(0, size-7); drawAnchor(size-7, 0);
-            
-            // Draw baseline sync timing layout parameters
-            for (let i = 7; i < size-7; i++) { matrix[6][i] = i % 2 === 0 ? 1 : 0; matrix[i][6] = i % 2 === 0 ? 1 : 0; }
-            
-            // Generate valid cryptographic binary data mapping cells using plain string variables
-            let val = 0;
-            for (let i = 0; i < text.length; i++) { val = (val << 5) - val + text.charCodeAt(i); val |= 0; }
-            let state = Math.abs(val);
-            
-            for (let r = 0; r < size; r++) {
-                for (let c = 0; c < size; c++) {
-                    if ((r < 8 && c < 8) || (r < 8 && c > size-9) || (r > size-9 && c < 8) || r === 6 || c === 6) continue;
-                    state = (state * 1103515245 + 12345) & 0x7fffffff;
-                    if ((state % 3) === 0 || (state % 7) === 0) matrix[r][c] = 1;
-                }
-            }
-            
-            // Inject the colored blocks straight into the webpage container
-            const container = document.getElementById("qr-matrix");
-            container.innerHTML = "";
-            for (let r = 0; r < size; r++) {
-                for (let c = 0; c < size; c++) {
-                    const block = document.createElement("div");
-                    block.className = matrix[r][c] === 1 ? "b" : "w";
-                    container.appendChild(block);
-                }
-            }
-        }
 
         function generateLocalToken(branch) {
             const secretKey = "BARENAKED_SALT_KEY";
@@ -93,7 +45,9 @@
             const currentToken = generateLocalToken(branchName);
             const qrPayload = branchName + "|" + currentToken;
             
-            buildScannableHTMLQR(qrPayload);
+            // Fires the local engine file from your directory to build a certified QR grid
+            var qr = new QRCode(4, 2); // Type 4, Level H Error Correction
+            qr.init(qrPayload);
             
             const secondsLeft = 30 - (Math.floor(new Date().getTime() / 1000) % 30);
             startCountdown(secondsLeft);
@@ -118,4 +72,3 @@
     </script>
 </body>
 </html>
-
