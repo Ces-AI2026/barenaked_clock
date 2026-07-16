@@ -14,48 +14,50 @@
 </head>
 <body>
     <div class="card">
-        <h2 id="branch-title">Loading Station...</h2>
+        <h2 id="branch-title">LOADING STATION...</h2>
         <p style="font-size:14px; color:#555;">Scan using your personal phone to log your shift.</p>
         <div id="qr-container">
             <img id="qr-image" src="" alt="QR Code" style="width:250px; height:250px; display:none; border-radius: 4px;">
-            <p id="loading-text">Synchronizing with core database...</p>
+            <p id="loading-text">Generating secure station tokens...</p>
         </div>
         <div id="timer">Refreshing in: --s</div>
     </div>
 
     <script>
-        // PASTE YOUR GOOGLE EXEC DEPLOYMENT URL BETWEEN THE DOUBLE QUOTES BELOW:
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwm2UsCDfEVmvOhRWci-SSaJnPeem94OclxwnJSYDUYZL-pOZD5m-aqRMbHDTGdw3JVfA/exec"; 
-        
         const urlParams = new URLSearchParams(window.location.search);
         const branchName = (urlParams.get('name') || "OFFICE").toUpperCase();
         document.getElementById("branch-title").innerText = branchName + " BRANCH";
 
-        function refreshQR() {
-            // Remove old tracking network references to maintain clean memory loops
-            const oldScript = document.getElementById('jsonp-sync');
-            if (oldScript) oldScript.remove();
+        // OFFLINE SECURITY ENGINE: Calculates 30-second keys right on your monitor screen
+        function generateLocalToken(branch) {
+            const secretKey = "BARENAKED_SALT_KEY";
+            const timeIndex = Math.floor(new Date().getTime() / 30000); 
+            const inputString = branch + secretKey + timeIndex;
+            
+            // Creates a fast, native numeric signature hash tracking loop
+            let hash = 0;
+            for (let i = 0; i < inputString.length; i++) {
+                const char = inputString.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash |= 0; 
+            }
+            return Math.abs(hash).toString(16).substring(0, 8).toUpperCase();
+        }
 
-             window.handleQRResponse = function(data) {
-                // FIX: Converts data cleanly into a pure string path for the image engine
-                const cleanBranch = data.branch || "OFFICE";
-                const cleanToken = data.token || "00000000";
-                
-                const qrPayload = cleanBranch + "|" + cleanToken;
-                const qrUrl = "https://quickchart.io" + encodeURIComponent(qrPayload);
-                
-                document.getElementById("qr-image").src = qrUrl;
-                document.getElementById("qr-image").style.display = "inline-block";
-                document.getElementById("loading-text").style.display = "none";
-                
-                startCountdown(data.expires_in);
-            };
-
-
-            const script = document.createElement('script');
-            script.id = 'jsonp-sync';
-            script.src = SCRIPT_URL + "?branch=" + encodeURIComponent(branchName) + "&callback=handleQRResponse";
-            document.body.appendChild(script);
+        function renderDynamicQR() {
+            const currentToken = generateLocalToken(branchName);
+            const qrPayload = branchName + "|" + currentToken;
+            
+            // Pushes payload parameters to a reliable, global open graphics rendering engine
+            const qrUrl = "https://quickchart.io" + encodeURIComponent(qrPayload);
+            
+            document.getElementById("qr-image").src = qrUrl;
+            document.getElementById("qr-image").style.display = "inline-block";
+            document.getElementById("loading-text").style.display = "none";
+            
+            // Synchronize the next refresh boundary precisely to the top of the next 30-second window
+            const secondsLeft = 30 - (Math.floor(new Date().getTime() / 1000) % 30);
+            startCountdown(secondsLeft);
         }
 
         function startCountdown(seconds) {
@@ -68,13 +70,13 @@
                 timerDiv.innerText = "Refreshing in: " + timeLeft + "s";
                 if (timeLeft <= 0) {
                     clearInterval(window.countdownInterval);
-                    refreshQR();
+                    renderDynamicQR();
                 }
             }, 1000);
         }
 
-        // Run clock execution loops immediately on boot
-        refreshQR();
+        // Initialize display loop instantly on boot
+        renderDynamicQR();
     </script>
 </body>
 </html>
