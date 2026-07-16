@@ -36,15 +36,13 @@
             const oldScript = document.getElementById('jsonp-sync');
             if (oldScript) oldScript.remove();
 
-            window.handleQRResponse = function(data) {
-                if(data.status === "error") {
-                    document.getElementById("loading-text").innerText = data.message;
-                    return;
-                }
-                const qrPayload = data.branch + "|" + data.token;
-                //const qrUrl = "https://qrserver.com" + encodeURIComponent(qrPayload);
-                const qrUrl = "https://quickchart.io" + encodeURIComponent(qrPayload);
+             window.handleQRResponse = function(data) {
+                // FIX: Converts data cleanly into a pure string path for the image engine
+                const cleanBranch = data.branch || "OFFICE";
+                const cleanToken = data.token || "00000000";
                 
+                const qrPayload = cleanBranch + "|" + cleanToken;
+                const qrUrl = "https://quickchart.io" + encodeURIComponent(qrPayload);
                 
                 document.getElementById("qr-image").src = qrUrl;
                 document.getElementById("qr-image").style.display = "inline-block";
@@ -52,6 +50,7 @@
                 
                 startCountdown(data.expires_in);
             };
+
 
             const script = document.createElement('script');
             script.id = 'jsonp-sync';
