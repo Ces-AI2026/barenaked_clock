@@ -1,51 +1,60 @@
+<!DOCTYPE html>
 <html>
 <head>
     <title>Barenaked Salon Station</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #fafafa; padding: 20px; }
-        .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: inline-block; max-width: 320px; }
-        #qr-container { margin: 20px 0; min-height: 250px; display: flex; align-items: center; justify-content: center; background: #eee; border-radius: 8px;}
-        h2 { color: #222; margin-bottom: 5px; text-transform: uppercase; font-size: 20px; letter-spacing: 1px; }
+        body { font-family: Arial, sans-serif; text-align: center; background: #fafafa; padding: 20px; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: inline-block; max-width: 320px; width: 100%; box-sizing: border-box; margin-top: 40px; }
+        #qr-container { margin: 20px 0; min-height: 250px; display: flex; align-items: center; justify-content: center; background: #eee; border-radius: 8px; }
+        h2 { color: #222; margin: 0 0 5px 0; text-transform: uppercase; font-size: 20px; letter-spacing: 1px; }
+        p { margin: 0 0 15px 0; }
         #timer { font-size: 13px; color: #999; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2 id="branch-title">Loading...</h2>
+        <h2 id="branch-title">Loading Station...</h2>
         <p style="font-size:14px; color:#555;">Scan using your personal phone to log your shift.</p>
         <div id="qr-container">
             <img id="qr-image" src="" alt="QR Code" style="width:250px; height:250px; display:none; border-radius: 4px;">
-            <p id="loading-text">Generating secure token...</p>
+            <p id="loading-text">Synchronizing with core database...</p>
         </div>
         <div id="timer">Refreshing in: --s</div>
     </div>
 
     <script>
-        // PASTE YOUR ACTUAL GOOGLE EXEC URL BETWEEN THE QUOTES BELOW
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxdQFVxnZIyXlwVfCRb5Hiqc15fSCSK1BKEvIq9fbe5GRYGUMi1LMAUnmp40VdarMWuaw/exec"; 
+        // PASTE YOUR GOOGLE EXEC DEPLOYMENT URL BETWEEN THE DOUBLE QUOTES BELOW:
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwm2UsCDfEVmvOhRWci-SSaJnPeem94OclxwnJSYDUYZL-pOZD5m-aqRMbHDTGdw3JVfA/exec"; 
         
         const urlParams = new URLSearchParams(window.location.search);
-        const branchName = urlParams.get('name') || "Fairview"; // Default fallback
-        document.getElementById("branch-title").innerText = branchName + " Branch";
+        const branchName = (urlParams.get('name') || "OFFICE").toUpperCase();
+        document.getElementById("branch-title").innerText = branchName + " BRANCH";
 
         function refreshQR() {
-            fetch(`${SCRIPT_URL}?branch=${encodeURIComponent(branchName)}`)
-                .then(response => response.json())
-                .then(data => {
-                    const qrPayload = data.branch + "|" + data.token;
-                    const qrUrl = "https://qrserver.com" + encodeURIComponent(qrPayload);
+            // Remove old tracking network references to maintain clean memory loops
+            const oldScript = document.getElementById('jsonp-sync');
+            if (oldScript) oldScript.remove();
 
-                    
-                    document.getElementById("qr-image").src = qrUrl;
-                    document.getElementById("qr-image").style.display = "inline-block";
-                    document.getElementById("loading-text").style.display = "none";
-                    
-                    startCountdown(data.expires_in);
-                })
-                .catch(err => {
-                    document.getElementById("loading-text").innerText = "Waiting for network connection...";
-                });
+            window.handleQRResponse = function(data) {
+                if(data.status === "error") {
+                    document.getElementById("loading-text").innerText = data.message;
+                    return;
+                }
+                const qrPayload = data.branch + "|" + data.token;
+                const qrUrl = "https://qrserver.com" + encodeURIComponent(qrPayload);
+                
+                document.getElementById("qr-image").src = qrUrl;
+                document.getElementById("qr-image").style.display = "inline-block";
+                document.getElementById("loading-text").style.display = "none";
+                
+                startCountdown(data.expires_in);
+            };
+
+            const script = document.createElement('script');
+            script.id = 'jsonp-sync';
+            script.src = SCRIPT_URL + "?branch=" + encodeURIComponent(branchName) + "&callback=handleQRResponse";
+            document.body.appendChild(script);
         }
 
         function startCountdown(seconds) {
@@ -55,7 +64,7 @@
             
             window.countdownInterval = setInterval(() => {
                 timeLeft--;
-                timerDiv.innerText = `Refreshing in: ${timeLeft}s`;
+                timerDiv.innerText = "Refreshing in: " + timeLeft + "s";
                 if (timeLeft <= 0) {
                     clearInterval(window.countdownInterval);
                     refreshQR();
@@ -63,6 +72,7 @@
             }, 1000);
         }
 
+        // Run clock execution loops immediately on boot
         refreshQR();
     </script>
 </body>
