@@ -109,7 +109,14 @@
                     localStorage.setItem("BN_SECURE_DEVICE_TOKEN", generatedTokenString);
                     LOCAL_HARDWARE_TOKEN = generatedTokenString;
                     displaySystemResponse("Phone Paired to Profile: " + res.employeeName, false);
-                    setTimeout(() => { initializeCameraHardware(); }, 2000);
+
+                   // Added a 500ms delay to let the phone memory settle before firing the video feed loops
+                   setTimeout(() => { 
+                        initializeCameraHardware(); 
+                        // Reloads the active hardware tokens cache seamlessly
+                        window.location.reload();
+                   }, 1500);
+
                 } else {
                     displaySystemResponse(res.message, true);
                 }
