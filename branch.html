@@ -1,57 +1,87 @@
-<script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const branchName = (urlParams.get('name') || "OFFICE").toUpperCase();
-    document.getElementById("branch-title").innerText = branchName + " BRANCH";
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Barenaked Salon Station</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #fafafa; padding: 20px; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: inline-block; max-width: 320px; width: 100%; box-sizing: border-box; margin-top: 40px; }
+        #qr-container { margin: 20px 0; min-height: 250px; display: flex; align-items: center; justify-content: center; background: #eee; border-radius: 8px; padding: 10px; box-sizing: border-box; }
+        h2 { color: #222; margin: 0 0 5px 0; text-transform: uppercase; font-size: 20px; letter-spacing: 1px; }
+        p { margin: 0 0 15px 0; }
+        #timer { font-size: 13px; color: #999; font-weight: bold; }
+        #qrcode img { display: block; margin: 0 auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); width: 220px; height: 220px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2 id="branch-title">LOADING STATION...</h2>
+        <p style="font-size:14px; color:#555;">Scan using your personal phone to log your shift.</p>
+        <div id="qr-container">
+            <div id="qrcode"></div>
+        </div>
+        <div id="timer">Refreshing in: --s</div>
+    </div>
 
-    // Rebuilt configuration wrapper using an absolute integer value (1 = Level Medium)
-    const qrEngine = new QRCode(document.getElementById("qrcode"), {
-        width: 220,
-        height: 220,
-        colorDark: "#000000",
-        colorLight: "#ffffff",
-        correctLevel: 1
-    });
+    <!-- Links directly to the clean file we just fixed in your repository -->
+    <script src="qrcode.min.js"></script>
 
-    function generateLocalToken(branch) {
-        const secretKey = "BARENAKED_SALT_KEY";
-        const timeIndex = Math.floor(new Date().getTime() / 30000); 
-        const inputString = branch + secretKey + timeIndex;
-        
-        let hash = 0;
-        for (let i = 0; i < inputString.length; i++) {
-            hash = ((hash << 5) - hash) + inputString.charCodeAt(i); hash |= 0; 
-        }
-        return Math.abs(hash).toString(16).substring(0, 8).toUpperCase();
-    }
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const branchName = (urlParams.get('name') || "OFFICE").toUpperCase();
+        document.getElementById("branch-title").innerText = branchName + " BRANCH";
 
-    function renderDynamicQR() {
-        const currentToken = generateLocalToken(branchName);
-        
-        // ⚠️ PLACE YOUR ACTUAL GOOGLE APPS SCRIPT WEB APP URL HERE ⚠️
-        const googleAppsScriptUrl = "https://script.google.com/macros/s/AKfycbxesu0W_OQxsiYBl9FYjB5kzTYzzJLxIWuzGl8XCPCwq48CxWkqYUS5fZXUB1BXw-8_8Q/exec";
-        
-        const qrPayload = googleAppsScriptUrl + "?branch=" + encodeURIComponent(branchName) + "&token=" + encodeURIComponent(currentToken);
-        
-        qrEngine.makeCode(qrPayload);
-        
-        const secondsLeft = 30 - (Math.floor(new Date().getTime() / 1000) % 30);
-        startCountdown(secondsLeft);
-    }
+        // Initialize engine using Level Medium correction
+        const qrEngine = new QRCode(document.getElementById("qrcode"), {
+            width: 220,
+            height: 220,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: 1
+        });
 
-    function startCountdown(seconds) {
-        let timeLeft = seconds;
-        const timerDiv = document.getElementById("timer");
-        clearInterval(window.countdownInterval);
-        
-        window.countdownInterval = setInterval(() => {
-            timeLeft--;
-            timerDiv.innerText = "Refreshing in: " + timeLeft + "s";
-            if (timeLeft <= 0) {
-                clearInterval(window.countdownInterval);
-                renderDynamicQR();
+        function generateLocalToken(branch) {
+            const secretKey = "BARENAKED_SALT_KEY";
+            const timeIndex = Math.floor(new Date().getTime() / 30000); 
+            const inputString = branch + secretKey + timeIndex;
+            
+            let hash = 0;
+            for (let i = 0; i < inputString.length; i++) {
+                hash = ((hash << 5) - hash) + inputString.charCodeAt(i); hash |= 0; 
             }
-        }, 1000);
-    }
+            return Math.abs(hash).toString(16).substring(0, 8).toUpperCase();
+        }
 
-    renderDynamicQR();
-</script>
+        function renderDynamicQR() {
+            const currentToken = generateLocalToken(branchName);
+            
+            // ⚠️ PLACE YOUR ACTUAL GOOGLE APPS SCRIPT WEB APP URL HERE ⚠️
+            const googleAppsScriptUrl = "https://script.google.com/macros/s/AKfycbxesu0W_OQxsiYBl9FYjB5kzTYzzJLxIWuzGl8XCPCwq48CxWkqYUS5fZXUB1BXw-8_8Q/exec";
+            
+            const qrPayload = googleAppsScriptUrl + "?branch=" + encodeURIComponent(branchName) + "&token=" + encodeURIComponent(currentToken);
+            
+            qrEngine.makeCode(qrPayload);
+            
+            const secondsLeft = 30 - (Math.floor(new Date().getTime() / 1000) % 30);
+            startCountdown(secondsLeft);
+        }
+
+        function startCountdown(seconds) {
+            let timeLeft = seconds;
+            const timerDiv = document.getElementById("timer");
+            clearInterval(window.countdownInterval);
+            
+            window.countdownInterval = setInterval(() => {
+                timeLeft--;
+                timerDiv.innerText = "Refreshing in: " + timeLeft + "s";
+                if (timeLeft <= 0) {
+                    clearInterval(window.countdownInterval);
+                    renderDynamicQR();
+                }
+            }, 1000);
+        }
+
+        renderDynamicQR();
+    </script>
+</body>
+</html>
