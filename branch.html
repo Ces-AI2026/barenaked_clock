@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
     <title>Barenaked Salon Station</title>
@@ -9,6 +10,8 @@
         h2 { color: #222; margin: 0 0 5px 0; text-transform: uppercase; font-size: 20px; letter-spacing: 1px; }
         p { margin: 0 0 15px 0; }
         #timer { font-size: 13px; color: #999; font-weight: bold; }
+        
+        /* Forces the engine's generated image to look crisp and centered */
         #qrcode img { display: block; margin: 0 auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); width: 220px; height: 220px; }
     </style>
 </head>
@@ -22,21 +25,22 @@
         <div id="timer">Refreshing in: --s</div>
     </div>
 
-    <!-- Calls the newly repaired local file from your repository folder -->
+    <!-- 1. Links to your repaired script file sitting in your GitHub repository -->
     <script src="qrcode.min.js"></script>
 
+    <!-- 2. Runs the official script engine options -->
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const branchName = (urlParams.get('name') || "OFFICE").toUpperCase();
         document.getElementById("branch-title").innerText = branchName + " BRANCH";
 
-        // Initialize engine using Level Medium correction for lightning-fast camera scans
+        // Initialize your repository's QR engine directly inside the element wrapper
         const qrEngine = new QRCode(document.getElementById("qrcode"), {
             width: 220,
             height: 220,
             colorDark: "#000000",
             colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.M
+            correctLevel: QRCode.CorrectLevel.M // Level Medium for standard rapid phone scanning
         });
 
         function generateLocalToken(branch) {
@@ -55,6 +59,7 @@
             const currentToken = generateLocalToken(branchName);
             const qrPayload = branchName + "|" + currentToken;
             
+            // Tell the true engine file to refresh the matrix blocks layout instantly
             qrEngine.makeCode(qrPayload);
             
             const secondsLeft = 30 - (Math.floor(new Date().getTime() / 1000) % 30);
