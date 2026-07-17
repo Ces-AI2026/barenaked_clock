@@ -116,6 +116,7 @@
             });
         }
 
+        // === START OF FUNCTION: executeSelfieAttendancePunch ===
         function executeSelfieAttendancePunch() {
             const video = document.getElementById("phone-video-stream");
             const canvas = document.getElementById("photo-capture-canvas");
@@ -128,23 +129,60 @@
             canvas.height = 240;
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            const highCompressionPhotoData = canvas.toDataURL("image/jpeg", 0.65);
+            // Extract the pure Base64 image characters cleanly from the phone canvas
+            const base64PhotoData = canvas.toDataURL("image/jpeg", 0.65).split(",")[1];
+            
             video.style.display = "none";
             canvas.style.display = "block";
             
-            executeCloudRPC("processAttendancePunch", [LOCAL_HARDWARE_TOKEN, highCompressionPhotoData, CURRENT_BRANCH, AUTHORIZED_MGR_NAME], (res) => {
-                toggleUiProcessingState(false);
-                if (res.status === "success") {
-                    displaySystemResponse(res.message + " - " + res.timeString + " for " + res.employeeName, false);
-                    document.getElementById("system-status-msg").innerText = "Verification complete. Terminal reset loaded.";
-                    if (window.localStreamReference) window.localStreamReference.getTracks().forEach(track => track.stop());
-                    setTimeout(() => { window.location.reload(); }, 3500);
+            // ⚠️ PLACE YOUR FREE IMGBB API KEY STRING HERE ⚠️
+            const IMGBB_API_KEY = "YOUR_IMGBB_API_KEY_HERE";
+            
+            // Package the image parameters into a standard form packet for instant web hosting
+            const imageFormPacket = new FormData();
+            imageFormPacket.append("image", base64PhotoData);
+            
+            document.getElementById("system-status-msg").innerText = "Uploading secure verification alibi string...";
+            
+            // Pushes the photo cleanly to ImgBB, completely bypassing the Google DriveApp block
+            fetch("https://imgbb.com" + IMGBB_API_KEY, {
+                method: "POST",
+                body: imageFormPacket
+            })
+            .then(response => response.json())
+            .then(imgbbResponse => {
+                if (imgbbResponse.success) {
+                    // Extract the clean permanent web address link to the hosted photo
+                    const hostedPhotoUrl = imgbbResponse.data.url;
+                    
+                    document.getElementById("system-status-msg").innerText = "Syncing final attendance ledger records...";
+                    
+                    // Pass the clean image web link over to your running Google Sheet database rows
+                    executeCloudRPC("processAttendancePunch", [LOCAL_HARDWARE_TOKEN, hostedPhotoUrl, CURRENT_BRANCH, AUTHORIZED_MGR_NAME], (res) => {
+                        toggleUiProcessingState(false);
+                        if (res.status === "success") {
+                            displaySystemResponse(res.message + " - " + res.timeString + " for " + res.employeeName, false);
+                            document.getElementById("system-status-msg").innerText = "Verification complete. Terminal reset loaded.";
+                            if (window.localStreamReference) window.localStreamReference.getTracks().forEach(track => track.stop());
+                            setTimeout(() => { window.location.reload(); }, 3500);
+                        } else {
+                            displaySystemResponse(res.message, true);
+                            restoreVideoDisplayFeed();
+                        }
+                    });
                 } else {
-                    displaySystemResponse(res.message, true);
-                    restoreVideoDisplayFeed();
+                    throw new Error("ImgBB Platform Rejected Upload Channel Parameters.");
                 }
+            })
+            .catch(err => {
+                console.error("Hosting Fault: ", err);
+                displaySystemResponse("Storage Write Error: Photo channel timeout. Try again.", true);
+                toggleUiProcessingState(false);
+                restoreVideoDisplayFeed();
             });
         }
+        // === END OF FUNCTION: executeSelfieAttendancePunch ===
+
 
         function displayManagerOverrideForm() {
             if (window.localStreamReference) window.localStreamReference.getTracks().forEach(track => track.stop());
