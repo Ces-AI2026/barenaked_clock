@@ -11,11 +11,8 @@
         p { margin: 0 0 15px 0; }
         #timer { font-size: 13px; color: #999; font-weight: bold; }
         
-        /* The CSS that renders our barcode matrix pixel-perfect */
-        .qr-table { border-collapse: collapse; margin: 0 auto; background: white; padding: 10px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .qr-table td { width: 8px; height: 8px; padding: 0; margin: 0; }
-        .b { background-color: #000000; }
-        .w { background-color: #ffffff; }
+        /* Forces the engine's generated image to look crisp and centered */
+        #qrcode img { display: block; margin: 0 auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); width: 220px; height: 220px; }
     </style>
 </head>
 <body>
@@ -23,16 +20,28 @@
         <h2 id="branch-title">LOADING STATION...</h2>
         <p style="font-size:14px; color:#555;">Scan using your personal phone to log your shift.</p>
         <div id="qr-container">
-            <!-- The table container that bypasses all firewalls -->
-            <div id="qr-matrix-target"></div>
+            <div id="qrcode"></div>
         </div>
         <div id="timer">Refreshing in: --s</div>
     </div>
 
+    <!-- 1. LINKS TO THE SCRIPT SITTING IN YOUR GITHUB REPOSITORY -->
+    <script src="qrcode.min.js"></script>
+
+    <!-- 2. RUNS THE TWO-LINER ENGINE CONTROLLER -->
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const branchName = (urlParams.get('name') || "OFFICE").toUpperCase();
         document.getElementById("branch-title").innerText = branchName + " BRANCH";
+
+        // Initialize your repository's QR engine directly inside the box
+        const qrEngine = new QRCode(document.getElementById("qrcode"), {
+            width: 220,
+            height: 220,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H // High error correction for fast scanning
+        });
 
         function generateLocalToken(branch) {
             const secretKey = "BARENAKED_SALT_KEY";
@@ -46,88 +55,16 @@
             return Math.abs(hash).toString(16).substring(0, 8).toUpperCase();
         }
 
-        // Hardcoded, genuine tracking anchors configuration data
-        // 1 represents black pixel, 0 represents white pixel
-        const ANCHOR_PATTERN = [
-            [1,1,1,1,1,1,1],
-            [1,0,0,0,0,0,1],
-            [1,0,1,1,1,0,1],
-            [1,0,1,1,1,0,1],
-            [1,0,1,1,1,0,1],
-            [1,0,0,0,0,0,1],
-            [1,1,1,1,1,1,1]
-        ];
-
-        function generateTableQR(targetId, payloadText) {
-            const container = document.getElementById(targetId);
-            const matrixSize = 25; 
-            
-            // Build out a clean empty background matrix array
-            let matrix = Array(matrixSize).fill(0).map(() => Array(matrixSize).fill(0));
-            
-            // Deterministic calculation from the actual payload string
-            let seed = 0;
-            for (let i = 0; i < payloadText.length; i++) {
-                seed += payloadText.charCodeAt(i);
-            }
-            
-            // Fill matrix with pseudo-data blocks layout calculations
-            for (let r = 0; r < matrixSize; r++) {
-                for (let c = 0; c < matrixSize; c++) {
-                    seed = (seed * 9301 + 49297) % 233280;
-                    matrix[r][c] = (seed / 233280) > 0.48 ? 1 : 0;
-                }
-            }
-            
-            // Clean out white space buffers around the anchors zones
-            for(let i=0; i<8; i++) {
-                for(let j=0; j<8; j++) {
-                    matrix[i][j] = 0;
-                    matrix[i][matrixSize - 1 - j] = 0;
-                    matrix[matrixSize - 1 - i][j] = 0;
-                }
-            }
-            
-            // Superimpose standard tracking markers so phone cameras lock on instantly
-            for (let r = 0; r < 7; r++) {
-                for (let c = 0; c < 7; c++) {
-                    matrix[r][c] = ANCHOR_PATTERN[r][c]; // Top-Left Anchor
-                    matrix[r][matrixSize - 7 + c] = ANCHOR_PATTERN[r][c]; // Top-Right Anchor
-                    matrix[matrixSize - 7 + r][c] = ANCHOR_PATTERN[r][c]; // Bottom-Left Anchor
-                }
-            }
-            
-            // Turn the digital array matrix into actual visible HTML element nodes
-            let tableHTML = '<table class="qr-table">';
-            for (let r = 0; r < matrixSize; r++) {
-                tableHTML += '<tr>';
-                for (let c = 0; c < matrixSize; c++) {
-                    const pixelClass = matrix[r][c] === 1 ? 'b' : 'w';
-                    tableHTML += `<td class="${pixelClass}"></td>`;
-                }
-                tableHTML += '</tr>';
-            }
-            tableHTML += '</table>';
-            
-            container.innerHTML = tableHTML;
-        }
-
         function renderDynamicQR() {
-           const currentToken = generateLocalToken(branchName);
-    
-           // REPLACE THIS URL with your actual Google Apps Script Web App Execution URL link
-           const googleAppsScriptUrl = "https://script.google.com/macros/s/AKfycbxesu0W_OQxsiYBl9FYjB5kzTYzzJLxIWuzGl8XCPCwq48CxWkqYUS5fZXUB1BXw-8_8Q/exec";
-    
-          // Construct a standard, actionable web URL payload for smartphone cameras
-          const qrPayload = googleAppsScriptUrl + "?branch=" + encodeURIComponent(branchName) + "&token=" + encodeURIComponent(currentToken);
-    
-         // Generates the table cells block data matrix using the clean URL string
-         generateTableQR("qr-matrix-target", qrPayload);
-    
-         const secondsLeft = 30 - (Math.floor(new Date().getTime() / 1000) % 30);
-         startCountdown(secondsLeft);
-}
-
+            const currentToken = generateLocalToken(branchName);
+            const qrPayload = branchName + "|" + currentToken;
+            
+            // Tell your script file to update the matrix blocks instantly
+            qrEngine.makeCode(qrPayload);
+            
+            const secondsLeft = 30 - (Math.floor(new Date().getTime() / 1000) % 30);
+            startCountdown(secondsLeft);
+        }
 
         function startCountdown(seconds) {
             let timeLeft = seconds;
@@ -148,3 +85,4 @@
     </script>
 </body>
 </html>
+
