@@ -54,7 +54,7 @@
     </div>
     <script>
         // ⚠️ REPLACE THIS STRING LINK WITH YOUR ACTUAL LIVE GOOGLE SCRIPT EXECUTION LINK ⚠️
-        const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbz-jFytRxLf2VTrGLz1AXtdHujiIYYMkKa7VGhhTe_dMr4Upi02_FRe0aoIktujUZwSgA/exec";
+        const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbzblvOOqPU2wZdnEqS-ov1YLYtOAjjYUS-F6Cyf9vGszCDqCz20l91FTNa0lYuralIvvg/exec";
 
         const urlParams = new URLSearchParams(window.location.search);
         const CURRENT_BRANCH = (urlParams.get('location') || urlParams.get('name') || "OFFICE").toUpperCase();
@@ -102,21 +102,14 @@
             toggleUiProcessingState(true);
             const generatedTokenString = "BN_TOK_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15).toUpperCase();
             
-            // Connect to Google Cloud backend over secure JSONP parameters layout
+            // Connect to Google Cloud backend over the secure POST data envelope channel
             executeCloudRPC("registerDeviceToken", [empIdInput, generatedTokenString], (res) => {
                 toggleUiProcessingState(false);
                 if (res.status === "success") {
                     localStorage.setItem("BN_SECURE_DEVICE_TOKEN", generatedTokenString);
                     LOCAL_HARDWARE_TOKEN = generatedTokenString;
                     displaySystemResponse("Phone Paired to Profile: " + res.employeeName, false);
-
-                   // Added a 500ms delay to let the phone memory settle before firing the video feed loops
-                   setTimeout(() => { 
-                        initializeCameraHardware(); 
-                        // Reloads the active hardware tokens cache seamlessly
-                        window.location.reload();
-                   }, 1500);
-
+                    setTimeout(() => { initializeCameraHardware(); }, 2000);
                 } else {
                     displaySystemResponse(res.message, true);
                 }
@@ -184,25 +177,31 @@
             });
         }
 
-        // Secure JSONP Bridge Engine: Connects GitHub Pages safely to Google Sheet API logic
+        // UNBLOCKABLE POST PAYLOAD BRIDGE: Packages large photo strings inside the HTTP message body
         function executeCloudRPC(actionMethod, argumentArray, successCallback) {
-            const scriptTag = document.createElement("script");
-            const uniqueCallbackName = "jsonp_cb_" + Math.floor(Math.random() * 1000000);
-            
-            window[uniqueCallbackName] = (response) => {
-                successCallback(response);
-                document.head.removeChild(scriptTag);
-                delete window[uniqueCallbackName];
+            const payloadData = {
+                action: actionMethod,
+                args: argumentArray
             };
-            
-            // Build the payload parameters to pass safely across domains over mobile data
-            let requestUrl = GOOGLE_SCRIPT_API_URL + "?action=" + encodeURIComponent(actionMethod) + "&callback=" + uniqueCallbackName;
-            for (let i = 0; i < argumentArray.length; i++) {
-                requestUrl += "&arg" + i + "=" + encodeURIComponent(argumentArray[i]);
-            }
-            
-            scriptTag.src = requestUrl;
-            document.head.appendChild(scriptTag);
+
+            fetch(GOOGLE_SCRIPT_API_URL, {
+                method: "POST",
+                mode: "cors",
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8"
+                },
+                body: JSON.stringify(payloadData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                successCallback(data);
+            })
+            .catch(err => {
+                console.error("Network Communication Fault: ", err);
+                displaySystemResponse("Transmission Error: Connection timed out. Try again.", true);
+                toggleUiProcessingState(false);
+                restoreVideoDisplayFeed();
+            });
         }
 
         function restoreVideoDisplayFeed() {
@@ -224,4 +223,5 @@
     </script>
 </body>
 </html>
+
 
