@@ -57,7 +57,12 @@
 
         function renderDynamicQR() {
             const currentToken = generateLocalToken(branchName);
-            const qrPayload = branchName + "|" + currentToken;
+            
+            // ⚠️ PLACE YOUR ACTUAL GOOGLE APPS SCRIPT WEB APP URL HERE ⚠️
+            const googleAppsScriptUrl = "https://script.google.com/macros/s/AKfycbxesu0W_OQxsiYBl9FYjB5kzTYzzJLxIWuzGl8XCPCwq48CxWkqYUS5fZXUB1BXw-8_8Q/exec";
+            
+            // Formats the actionable parameters link string cleanly for camera tracking apps
+            const qrPayload = googleAppsScriptUrl + "?branch=" + encodeURIComponent(branchName) + "&token=" + encodeURIComponent(currentToken);
             
             // Tell the true engine file to refresh the matrix blocks layout instantly
             qrEngine.makeCode(qrPayload);
@@ -85,4 +90,3 @@
     </script>
 </body>
 </html>
-
