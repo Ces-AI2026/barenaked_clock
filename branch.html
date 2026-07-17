@@ -113,15 +113,21 @@
         }
 
         function renderDynamicQR() {
-            const currentToken = generateLocalToken(branchName);
-            const qrPayload = branchName + "|" + currentToken;
-            
-            // Render the barcode via CSS background cells layout table
-            generateTableQR("qr-matrix-target", qrPayload);
-            
-            const secondsLeft = 30 - (Math.floor(new Date().getTime() / 1000) % 30);
-            startCountdown(secondsLeft);
-        }
+           const currentToken = generateLocalToken(branchName);
+    
+           // REPLACE THIS URL with your actual Google Apps Script Web App Execution URL link
+           const googleAppsScriptUrl = "https://script.google.com/macros/s/AKfycbwm2UsCDfEVmvOhRWci-SSaJnPeem94OclxwnJSYDUYZL-pOZD5m-aqRMbHDTGdw3JVfA/exec";
+    
+          // Construct a standard, actionable web URL payload for smartphone cameras
+          const qrPayload = googleAppsScriptUrl + "?branch=" + encodeURIComponent(branchName) + "&token=" + encodeURIComponent(currentToken);
+    
+         // Generates the table cells block data matrix using the clean URL string
+         generateTableQR("qr-matrix-target", qrPayload);
+    
+         const secondsLeft = 30 - (Math.floor(new Date().getTime() / 1000) % 30);
+         startCountdown(secondsLeft);
+}
+
 
         function startCountdown(seconds) {
             let timeLeft = seconds;
