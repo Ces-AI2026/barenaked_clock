@@ -117,6 +117,7 @@
         }
 
         // === START OF FUNCTION: executeSelfieAttendancePunch ===
+                // === START OF FUNCTION: executeSelfieAttendancePunch ===
         function executeSelfieAttendancePunch() {
             const video = document.getElementById("phone-video-stream");
             const canvas = document.getElementById("photo-capture-canvas");
@@ -129,8 +130,9 @@
             canvas.height = 240;
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            // Extract the pure Base64 image characters cleanly from the phone canvas
-            const base64PhotoData = canvas.toDataURL("image/jpeg", 0.65).split(",")[1];
+            // 🟢 FIXED LINE: Extracts only the pure Base64 characters, leaving out any array markers
+            const rawCanvasData = canvas.toDataURL("image/jpeg", 0.65);
+            const pureBase64String = rawCanvasData.substring(rawCanvasData.indexOf(",") + 1);
             
             video.style.display = "none";
             canvas.style.display = "block";
@@ -138,13 +140,13 @@
             // ⚠️ PLACE YOUR FREE IMGBB API KEY STRING HERE ⚠️
             const IMGBB_API_KEY = "6038206c42b816d3fcfcfd5ca68862f7";
             
-            // Package the image parameters into a standard form packet for instant web hosting
+            // Form data construction for clear hosting ingestion
             const imageFormPacket = new FormData();
-            imageFormPacket.append("image", base64PhotoData);
+            imageFormPacket.append("image", pureBase64String);
             
             document.getElementById("system-status-msg").innerText = "Uploading secure verification alibi string...";
             
-            // Pushes the photo cleanly to ImgBB, completely bypassing the Google DriveApp block
+            // Pushes the pure photo string to ImgBB with absolute data formatting
             fetch("https://imgbb.com" + IMGBB_API_KEY, {
                 method: "POST",
                 body: imageFormPacket
@@ -152,7 +154,6 @@
             .then(response => response.json())
             .then(imgbbResponse => {
                 if (imgbbResponse.success) {
-                    // Extract the clean permanent web address link to the hosted photo
                     const hostedPhotoUrl = imgbbResponse.data.url;
                     
                     document.getElementById("system-status-msg").innerText = "Syncing final attendance ledger records...";
@@ -171,7 +172,7 @@
                         }
                     });
                 } else {
-                    throw new Error("ImgBB Platform Rejected Upload Channel Parameters.");
+                    throw new Error(imgbbResponse.error ? imgbbResponse.error.message : "ImgBB Ingestion Fault");
                 }
             })
             .catch(err => {
@@ -181,6 +182,8 @@
                 restoreVideoDisplayFeed();
             });
         }
+        // === END OF FUNCTION: executeSelfieAttendancePunch ===
+
         // === END OF FUNCTION: executeSelfieAttendancePunch ===
 
 
