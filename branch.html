@@ -192,8 +192,8 @@
                     toggleUiProcessingState(false);
                     restoreVideoDisplayFeed();
                 });
-
-            }, "image/jpeg", 0.7); // 0.7 sets quality scale to 70% to guarantee rapid transmission over 4G/5G mobile networks
+            // Removes the quality downscale multiplier to bypass smartphone graphics chip glitching
+            }, "image/jpeg"); // 0.7 sets quality scale to 70% to guarantee rapid transmission over 4G/5G mobile networks
         }
         // === END OF FUNCTION: executeSelfieAttendancePunch ===
 
