@@ -126,8 +126,15 @@
             const context = canvas.getContext("2d");
 
             // Match canvas dimensions to the active video streaming frame
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            //canvas.width = video.videoWidth;
+            //canvas.height = video.videoHeight;
+
+           // === START OF REPLACEMENT: HARDCODED BOUNDARY CANVAS RECTANGLE ===
+           // Enforces fixed pixel bounds to prevent mobile sandboxes from reading 0 width dimensions
+             canvas.width = 340;
+             canvas.height = 240;
+           // === END OF REPLACEMENT: HARDCODED BOUNDARY CANVAS RECTANGLE ===
+
 
             // Draw the current camera frame instantly onto the canvas layout
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
