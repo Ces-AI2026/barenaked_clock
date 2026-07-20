@@ -164,7 +164,8 @@
                 .then(response => response.json())
                 .then(imgbbResponse => {
                     if (imgbbResponse.success) {
-                        const hostedPhotoUrl = imgbbResponse.data.url;
+                        // Captures the official webpage viewer link to completely bypass hotlink restrictions
+                        const hostedPhotoUrl = imgbbResponse.data.url_viewer;
                         
                         document.getElementById("system-status-msg").innerText = "Syncing final attendance ledger records...";
                         
