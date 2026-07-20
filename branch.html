@@ -117,73 +117,83 @@
         }
 
         // === START OF FUNCTION: executeSelfieAttendancePunch ===
-                // === START OF FUNCTION: executeSelfieAttendancePunch ===
         function executeSelfieAttendancePunch() {
+            toggleUiProcessingState(true);
+            document.getElementById("system-status-msg").innerText = "Capturing facial verification asset...";
+
             const video = document.getElementById("phone-video-stream");
             const canvas = document.getElementById("photo-capture-canvas");
-            const ctx = canvas.getContext("2d");
-            
-            toggleUiProcessingState(true);
-            document.getElementById("system-status-msg").innerText = "Compiling secure biometric vector records...";
-            
-            canvas.width = 320;
-            canvas.height = 240;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // 🟢 FIXED LINE: Extracts only the pure Base64 characters, leaving out any array markers
-            const rawCanvasData = canvas.toDataURL("image/jpeg", 0.65);
-            const pureBase64String = rawCanvasData.substring(rawCanvasData.indexOf(",") + 1);
-            
+            const context = canvas.getContext("2d");
+
+            // Match canvas dimensions to the active video streaming frame
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Draw the current camera frame instantly onto the canvas layout
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Freeze the screen preview by switching visibility states
             video.style.display = "none";
             canvas.style.display = "block";
-            
-            // ⚠️ PLACE YOUR FREE IMGBB API KEY STRING HERE ⚠️
-            const IMGBB_API_KEY = "6038206c42b816d3fcfcfd5ca68862f7";
-            
-            // Form data construction for clear hosting ingestion
-            const imageFormPacket = new FormData();
-            imageFormPacket.append("image", pureBase64String);
-            
-            document.getElementById("system-status-msg").innerText = "Uploading secure verification alibi string...";
-            
-            // Pushes the pure photo string to ImgBB with absolute data formatting
-            fetch("https://imgbb.com" + IMGBB_API_KEY, {
-                method: "POST",
-                body: imageFormPacket
-            })
-            .then(response => response.json())
-            .then(imgbbResponse => {
-                if (imgbbResponse.success) {
-                    const hostedPhotoUrl = imgbbResponse.data.url;
-                    
-                    document.getElementById("system-status-msg").innerText = "Syncing final attendance ledger records...";
-                    
-                    // Pass the clean image web link over to your running Google Sheet database rows
-                    executeCloudRPC("processAttendancePunch", [LOCAL_HARDWARE_TOKEN, hostedPhotoUrl, CURRENT_BRANCH, AUTHORIZED_MGR_NAME], (res) => {
-                        toggleUiProcessingState(false);
-                        if (res.status === "success") {
-                            displaySystemResponse(res.message + " - " + res.timeString + " for " + res.employeeName, false);
-                            document.getElementById("system-status-msg").innerText = "Verification complete. Terminal reset loaded.";
-                            if (window.localStreamReference) window.localStreamReference.getTracks().forEach(track => track.stop());
-                            setTimeout(() => { window.location.reload(); }, 3500);
-                        } else {
-                            displaySystemResponse(res.message, true);
-                            restoreVideoDisplayFeed();
-                        }
-                    });
-                } else {
-                    throw new Error(imgbbResponse.error ? imgbbResponse.error.message : "ImgBB Ingestion Fault");
-                }
-            })
-            .catch(err => {
-                console.error("Hosting Fault: ", err);
-                displaySystemResponse("Storage Write Error: Photo channel timeout. Try again.", true);
-                toggleUiProcessingState(false);
-                restoreVideoDisplayFeed();
-            });
-        }
-        // === END OF FUNCTION: executeSelfieAttendancePunch ===
 
+             // === INITIALIZATION OF THE IMGBB API KEY ===
+            const IMGBB_API_KEY = "6038206c42b816d3fcfcfd5ca68862f7";
+
+            // STEP 1: Convert canvas frame to a native binary JPEG Blob with 70% compression (slams size below 100KB)
+            canvas.toBlob(function(imageBlob) {
+                if (!imageBlob) {
+                    displaySystemResponse("Hardware Error: Failed to compress visual capture file asset.", true);
+                    toggleUiProcessingState(false);
+                    restoreVideoDisplayFeed();
+                    return;
+                }
+
+                // STEP 2: Wrap the compressed binary image file into a standard multipart form data packet
+                const imageFormPacket = new FormData();
+                imageFormPacket.append("image", imageBlob, "verification_selfie.jpg");
+
+                document.getElementById("system-status-msg").innerText = "Uploading visual alibi to secure hosting matrix...";
+
+                // ///////////////////////////////////////////////////////////////////////////
+                // ⚠️ CONFIRMATION: THIS IS THE HIDDEN MACHINE PATHWAY FOR IMGBB API UPLOADS ⚠️
+                // ///////////////////////////////////////////////////////////////////////////
+                fetch("https://api.imgbb.com/1/upload?key=" + IMGBB_API_KEY, {
+                    method: "POST",
+                    body: imageFormPacket
+                })
+                .then(response => response.json())
+                .then(imgbbResponse => {
+                    if (imgbbResponse.success) {
+                        const hostedPhotoUrl = imgbbResponse.data.url;
+                        
+                        document.getElementById("system-status-msg").innerText = "Syncing final attendance ledger records...";
+                        
+                        // Pass the clean image web link over to your running Google Sheet database rows
+                        executeCloudRPC("processAttendancePunch", [LOCAL_HARDWARE_TOKEN, hostedPhotoUrl, CURRENT_BRANCH, AUTHORIZED_MGR_NAME], (res) => {
+                            toggleUiProcessingState(false);
+                            if (res.status === "success") {
+                                displaySystemResponse(res.message + " - " + res.timeString + " for " + res.employeeName, false);
+                                document.getElementById("system-status-msg").innerText = "Verification complete. Terminal reset loaded.";
+                                if (window.localStreamReference) window.localStreamReference.getTracks().forEach(track => track.stop());
+                                setTimeout(() => { window.location.reload(); }, 3500);
+                            } else {
+                                displaySystemResponse(res.message, true);
+                                restoreVideoDisplayFeed();
+                            }
+                        });
+                    } else {
+                        throw new Error(imgbbResponse.error ? imgbbResponse.error.message : "ImgBB Ingestion Fault");
+                    }
+                })
+                .catch(err => {
+                    console.error("Hosting Fault: ", err);
+                    displaySystemResponse("Storage Write Error: Photo channel timeout. Try again.", true);
+                    toggleUiProcessingState(false);
+                    restoreVideoDisplayFeed();
+                });
+
+            }, "image/jpeg", 0.7); // 0.7 sets quality scale to 70% to guarantee rapid transmission over 4G/5G mobile networks
+        }
         // === END OF FUNCTION: executeSelfieAttendancePunch ===
 
 
