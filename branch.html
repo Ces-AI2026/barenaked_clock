@@ -9,7 +9,30 @@
         h2 { font-size: 20px; margin: 0 0 4px 0; color: #000; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
         p { font-size: 13px; color: #86868b; margin: 0 0 20px 0; line-height: 1.4; }
         .interactive-container { position: relative; width: 100%; min-height: 240px; background: #e8e8ed; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
-        video, canvas { width: 100%; height: 240px; object-fit: cover; display: none; background: #000; border-radius: 12px; }
+/* ====================================================================================================
+   FIXED VIDEO LAYER STYLING
+   Keeps the live selfie camera view framed, responsive, and visible on the phone screen.
+   ==================================================================================================== */
+video { 
+    width: 100%; 
+    height: 240px; 
+    object-fit: cover; 
+    background: #000; 
+    border-radius: 12px; 
+}
+
+/* ====================================================================================================
+   FIXED CANVAS LAYER STYLING
+   CRITICAL FIX: Removed 'display: none' so smartphone graphics processors do not freeze the frame.
+   This keeps the canvas completely active in memory but physically moves it off-screen out of sight.
+   ==================================================================================================== */
+canvas {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    opacity: 0;
+    pointer-events: none;
+}
         .btn { background: #0071e3; color: white; border: none; padding: 12px 24px; font-size: 14px; font-weight: 600; border-radius: 8px; width: 100%; cursor: pointer; transition: background 0.2s; margin-top: 15px; box-sizing: border-box; }
         .btn:hover { background: #0077ed; }
         .btn:disabled { background: #d2d2d7; color: #86868b; cursor: not-allowed; }
@@ -31,7 +54,13 @@
         <div class="interactive-container">
             <div id="ui-loader-spinner" class="loading-spinner" style="display: block;"></div>
             <video id="phone-video-stream" autoplay playsinline muted></video>
-            <canvas id="photo-capture-canvas"></canvas>
+ <!-- ====================================================================================================
+     FIXED CANVAS MARKUP WITH NATIVE BOUNDS
+     CRITICAL FIX: Adding hardcoded width and height attributes directly into the HTML tag ensures the 
+     mobile GPU creates a valid pixel grid area. This stops the snapshot from turning up completely blank.
+     ==================================================================================================== -->
+            <canvas id="photo-capture-canvas" width="340" height="240"></canvas>
+
             
             <!-- Secure Initial Login Form -->
             <div id="registration-form-panel" style="display: none; padding: 20px; width: 100%;">
@@ -55,6 +84,13 @@
     <script>
         // ⚠️ REPLACE THIS STRING LINK WITH YOUR ACTUAL LIVE GOOGLE SCRIPT EXECUTION LINK ⚠️
         const GOOGLE_SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbwqdyBG-U6cAXYeVJwDKtZ7IaI9XDxmro6WnDrE-BtzNq1zYJvUN7EHSHvP7Gp9Lg3RdQ/exec";
+
+        // ====================================================================================================
+        // IMGBB API KEY STORAGE
+        // ⚠️ REPLACE THE LETTERS BELOW WITH YOUR ACTUAL CHOSEN IMGBB PRIVATE API KEY ⚠️
+        // ====================================================================================================
+        const IMGBB_API_KEY = "6038206c42b816d3fcfcfd5ca68862f7";
+
 
         const urlParams = new URLSearchParams(window.location.search);
         const CURRENT_BRANCH = (urlParams.get('location') || urlParams.get('name') || "OFFICE").toUpperCase();
@@ -117,6 +153,7 @@
         }
 
         // === START OF FUNCTION: executeSelfieAttendancePunch ===
+
         function executeSelfieAttendancePunch() {
             toggleUiProcessingState(true);
             document.getElementById("system-status-msg").innerText = "Capturing facial verification asset...";
@@ -200,8 +237,9 @@
                     restoreVideoDisplayFeed();
                 });
             // Removes the quality downscale multiplier to bypass smartphone graphics chip glitching
-            }, "image/jpeg"); // 0.7 sets quality scale to 70% to guarantee rapid transmission over 4G/5G mobile networks
+            }, "image/jpeg"); 
         }
+
         // === END OF FUNCTION: executeSelfieAttendancePunch ===
 
 
